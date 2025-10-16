@@ -1,6 +1,8 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using AutoMapper;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using VinylStore.Application;
+using VinylStore.Application.Dtos.Artista;
 using VinylStore.Entities;
 
 namespace VinylStore.WebApi.Controllers
@@ -11,17 +13,19 @@ namespace VinylStore.WebApi.Controllers
     {
         private readonly ILogger<ArtistasController> _logger;
         private readonly IApplication<Artista> _artista;
-        public ArtistasController(ILogger<ArtistasController> logger, IApplication<Artista> artista)
+        private readonly IMapper _mapper;
+        public ArtistasController(ILogger<ArtistasController> logger, IApplication<Artista> artista, IMapper mapper)
         {
             _logger = logger;
             _artista = artista;
+            _mapper = mapper;
         }
 
         [HttpGet]
         [Route("All")]
         public async Task<IActionResult> All()
         {
-            return Ok(_artista.GetAll());
+            return Ok(_mapper.Map<IList<ArtistaResponseDto>>(_artista.GetAll()));
         }
 
         [HttpGet]
@@ -37,20 +41,21 @@ namespace VinylStore.WebApi.Controllers
             {
                 return NotFound();
             }
-            return Ok(artista);
+            return Ok(_mapper.Map<ArtistaResponseDto>(artista));
         }
 
         [HttpPost]
-        public async Task<IActionResult> Crear(Artista artista)
+        public async Task<IActionResult> Crear(ArtistaRequestDto artistaRequestDto)
         {
             if (!ModelState.IsValid)
             { return BadRequest(); }
+            var artista = _mapper.Map<Artista>(artistaRequestDto);
             _artista.Save(artista);
             return Ok(artista.Id);
         }
 
         [HttpPut]
-        public async Task<IActionResult> Editar(int? Id, Artista artista)
+        public async Task<IActionResult> Editar(int? Id, ArtistaRequestDto artistaRequestDto)
         {
             if (!Id.HasValue)
             { return BadRequest(); }
@@ -59,11 +64,9 @@ namespace VinylStore.WebApi.Controllers
             Artista artistaBack = _artista.GetById(Id.Value);
             if (artistaBack is null)
             { return NotFound(); }
-            artistaBack.Nombre = artista.Nombre;
-            artistaBack.Pais = artista.Pais;
-            artistaBack.Biografia = artista.Biografia;
+            artistaBack = _mapper.Map<Artista>(artistaRequestDto);
             _artista.Save(artistaBack);
-            return Ok(artistaBack);
+            return Ok();
         }
 
         [HttpDelete]
