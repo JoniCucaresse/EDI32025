@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using VinylStore.DataAccess;
 
@@ -11,9 +12,11 @@ using VinylStore.DataAccess;
 namespace VinylStore.WebApi.Migrations
 {
     [DbContext(typeof(DbDataAccess))]
-    partial class DbDataAccessModelSnapshot : ModelSnapshot
+    [Migration("20251017004953_NuevasEntidades")]
+    partial class NuevasEntidades
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

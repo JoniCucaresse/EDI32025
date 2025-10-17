@@ -17,6 +17,10 @@ namespace VinylStore.DataAccess
         public virtual DbSet<Genero> Generos { get; set; }
         public virtual DbSet<ArtistaPorVinilo> ArtistasPorVinilos { get; set; }
         public virtual DbSet<GeneroPorVinilo> GenerosPorVinilos { get; set; }
+        public virtual DbSet<Cliente> Clientes { get; set; }
+        public virtual DbSet<Pedido> Pedidos { get; set; }
+        public virtual DbSet<DetallePedido> DetallesPedidos { get; set; }
+        public virtual DbSet<Reseña> Reseñas { get; set; }
         public DbDataAccess(DbContextOptions<DbDataAccess> options) : base(options) { }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder) => optionsBuilder.LogTo(Console.WriteLine).EnableDetailedErrors();
     }
