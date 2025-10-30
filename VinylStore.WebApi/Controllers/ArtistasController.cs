@@ -58,15 +58,31 @@ namespace VinylStore.WebApi.Controllers
         public async Task<IActionResult> Editar(int? Id, ArtistaRequestDto artistaRequestDto)
         {
             if (!Id.HasValue)
-            { return BadRequest(); }
+            {
+                return BadRequest("ID requerido");
+            }
+
             if (!ModelState.IsValid)
-            { return BadRequest(); }
+            {
+                return BadRequest(ModelState);
+            }
+
             Artista artistaBack = _artista.GetById(Id.Value);
+
             if (artistaBack is null)
-            { return NotFound(); }
-            artistaBack = _mapper.Map<Artista>(artistaRequestDto);
+            {
+                return NotFound($"No se encontró el artista con ID {Id.Value}");
+            }
+
+            _mapper.Map(artistaRequestDto, artistaBack);
+
+            artistaBack.Id = Id.Value;
+
             _artista.Save(artistaBack);
-            return Ok();
+
+            var artistaResponseDto = _mapper.Map<ArtistaResponseDto>(artistaBack);
+
+            return Ok(artistaResponseDto);
         }
 
         [HttpDelete]
