@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using VinylStore.Application;
+using VinylStore.Application.Dtos.Artista;
 using VinylStore.Application.Dtos.Discografica;
 using VinylStore.Entities;
 
@@ -67,20 +68,32 @@ namespace VinylStore.WebApi.Controllers
         [HttpPut]
         public async Task<IActionResult> Editar(int? Id, DiscograficaRequestDto discograficaRequestDto)
         {
-            if (!Id.HasValue || !ModelState.IsValid)
+            if (!Id.HasValue)
             {
-                return BadRequest();
+                return BadRequest("ID requerido");
             }
 
-            var existing = _discografica.GetById(Id.Value);
-            if (existing is null)
+            if (!ModelState.IsValid)
             {
-                return NotFound();
+                return BadRequest(ModelState);
             }
 
-            existing = _mapper.Map<Discografica>(discograficaRequestDto);
-            _discografica.Save(existing);
-            return Ok();
+            Discografica discograficaBack = _discografica.GetById(Id.Value);
+
+            if (discograficaBack is null)
+            {
+                return NotFound($"No se encontró la discografica con ID {Id.Value}");
+            }
+
+            _mapper.Map(discograficaRequestDto, discograficaBack);
+
+            discograficaBack.Id = Id.Value;
+
+            _discografica.Save(discograficaBack);
+
+            var discograficaResponseDto = _mapper.Map<DiscograficaResponseDto>(discograficaBack);
+
+            return Ok(discograficaResponseDto);
         }
 
         [HttpDelete]

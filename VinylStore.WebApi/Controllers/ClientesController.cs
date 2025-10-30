@@ -66,7 +66,7 @@ namespace VinylStore.WebApi.Controllers
             { return NotFound(); }
             clienteBack = _mapper.Map<Cliente>(clienteRequestDto);
             _cliente.Save(clienteBack);
-            return Ok();
+            return Ok(clienteBack);
         }
 
         [HttpDelete]

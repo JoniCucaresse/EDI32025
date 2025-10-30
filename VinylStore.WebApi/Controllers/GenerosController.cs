@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using VinylStore.Application;
+using VinylStore.Application.Dtos.Discografica;
 using VinylStore.Application.Dtos.Genero;
 using VinylStore.Entities;
 
@@ -68,20 +69,32 @@ namespace VinylStore.WebApi.Controllers
         [HttpPut]
         public async Task<IActionResult> Editar(int? Id, GeneroRequestDto generoRequestDto)
         {
-            if (!Id.HasValue || !ModelState.IsValid)
+            if (!Id.HasValue)
             {
-                return BadRequest();
+                return BadRequest("ID requerido");
             }
 
-            var existing = _genero.GetById(Id.Value);
-            if (existing is null)
+            if (!ModelState.IsValid)
             {
-                return NotFound();
+                return BadRequest(ModelState);
             }
 
-            existing = _mapper.Map<Genero>(generoRequestDto);
-            _genero.Save(existing);
-            return Ok();
+            Genero generoBack = _genero.GetById(Id.Value);
+
+            if (generoBack is null)
+            {
+                return NotFound($"No se encontró el genero con ID {Id.Value}");
+            }
+
+            _mapper.Map(generoRequestDto, generoBack);
+
+            generoBack.Id = Id.Value;
+
+            _genero.Save(generoBack);
+
+            var generoResponseDto = _mapper.Map<GeneroResponseDto>(generoBack);
+
+            return Ok(generoResponseDto);
         }
 
         [HttpDelete]
