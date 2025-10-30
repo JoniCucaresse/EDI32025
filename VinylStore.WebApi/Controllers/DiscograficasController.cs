@@ -2,7 +2,6 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using VinylStore.Application;
-using VinylStore.Application.Dtos.Artista;
 using VinylStore.Application.Dtos.Discografica;
 using VinylStore.Entities;
 
