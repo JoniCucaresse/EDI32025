@@ -5,12 +5,12 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace VinylStore.Application.Dtos.Genero
+namespace VinylStore.Application.Dtos.Pais
 {
-    public class GeneroRequestDto
+    public class PaisRequestDto
     {
         public int Id { get; set; }
         [StringLength(50)]
-        public string Nombre { get; set; }
+        public string NombrePais { get; set; }
     }
 }
