@@ -8,15 +8,17 @@ using VinylStore.Abstractions;
 
 namespace VinylStore.Entities
 {
-    public class Genero : IEntidad
+    public class Pais : IEntidad
     {
-        public Genero()
+        public Pais()
         {
-            GenerosPorVinilos = new HashSet<GeneroPorVinilo>();
+            PaisesPorArtistas = new HashSet<PaisPorArtista>();
         }
         public int Id { get; set; }
         [StringLength(50)]
-        public string Nombre { get; set; }
-        public virtual ICollection<GeneroPorVinilo> GenerosPorVinilos { get; set; }
+        public string NombrePais { get; set; }
+
+        public virtual ICollection<PaisPorArtista> PaisesPorArtistas { get; set; }
+
     }
 }
