@@ -1,31 +1,46 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using VinylStore.Application;
 using VinylStore.Application.Dtos.Artista;
 using VinylStore.Entities;
+using VinylStore.Entities.MicrosoftIdentity;
 
 namespace VinylStore.WebApi.Controllers
 {
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     [Route("api/[controller]")]
     [ApiController]
     public class ArtistasController : ControllerBase
     {
+        private readonly UserManager<User> _userManager;
         private readonly ILogger<ArtistasController> _logger;
         private readonly IApplication<Artista> _artista;
         private readonly IMapper _mapper;
-        public ArtistasController(ILogger<ArtistasController> logger, IApplication<Artista> artista, IMapper mapper)
+        public ArtistasController(ILogger<ArtistasController> logger, UserManager<User> userManager, IApplication<Artista> artista, IMapper mapper)
         {
             _logger = logger;
             _artista = artista;
             _mapper = mapper;
+            _userManager = userManager;
         }
 
         [HttpGet]
         [Route("All")]
         public async Task<IActionResult> All()
         {
-            return Ok(_mapper.Map<IList<ArtistaResponseDto>>(_artista.GetAll()));
+            var id = User.FindFirst("Id").Value.ToString();
+            var user = _userManager.FindByIdAsync(id).Result;
+            if (_userManager.IsInRoleAsync(user, "Administrador").Result)
+            {
+                var name = User.FindFirst("name");
+                var a = User.Claims;
+                return Ok(_mapper.Map<IList<ArtistaResponseDto>>(_artista.GetAll()));
+            }
+            return Unauthorized();
         }
 
         [HttpGet]
