@@ -16,5 +16,7 @@ namespace VinylStore.Application.Dtos.Identity.User
         public string Email { get; set; }
         [Required]
         public string UserName { get; set; }
+
+        public string DireccionEnvio { get; set; }
     }
 }
