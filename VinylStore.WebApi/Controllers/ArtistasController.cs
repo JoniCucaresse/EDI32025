@@ -20,7 +20,10 @@ namespace VinylStore.WebApi.Controllers
         private readonly ILogger<ArtistasController> _logger;
         private readonly IApplication<Artista> _artista;
         private readonly IMapper _mapper;
-        public ArtistasController(ILogger<ArtistasController> logger, UserManager<User> userManager, IApplication<Artista> artista, IMapper mapper)
+        public ArtistasController(ILogger<ArtistasController> logger, 
+            UserManager<User> userManager, 
+            IApplication<Artista> artista, 
+            IMapper mapper)
         {
             _logger = logger;
             _artista = artista;
@@ -30,11 +33,13 @@ namespace VinylStore.WebApi.Controllers
 
         [HttpGet]
         [Route("All")]
+        [Authorize(Roles = "Administrador, Cliente")]
         public async Task<IActionResult> All()
         {
             var id = User.FindFirst("Id").Value.ToString();
             var user = _userManager.FindByIdAsync(id).Result;
-            if (_userManager.IsInRoleAsync(user, "Administrador").Result)
+            if (_userManager.IsInRoleAsync(user, "Administrador").Result ||
+                _userManager.IsInRoleAsync(user, "Cliente").Result)
             {
                 var name = User.FindFirst("name");
                 var a = User.Claims;
@@ -45,6 +50,7 @@ namespace VinylStore.WebApi.Controllers
 
         [HttpGet]
         [Route("ById")]
+        [Authorize(Roles = "Administrador, Cliente")]
         public async Task<IActionResult> ById(int? Id)
         {
             if (!Id.HasValue)
@@ -60,6 +66,7 @@ namespace VinylStore.WebApi.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> Crear(ArtistaRequestDto artistaRequestDto)
         {
             if (!ModelState.IsValid)
@@ -70,6 +77,7 @@ namespace VinylStore.WebApi.Controllers
         }
 
         [HttpPut]
+        [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> Editar(int? Id, ArtistaRequestDto artistaRequestDto)
         {
             if (!Id.HasValue)
@@ -101,6 +109,7 @@ namespace VinylStore.WebApi.Controllers
         }
 
         [HttpDelete]
+        [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> Borrar(int? Id)
         {
             if (!Id.HasValue)

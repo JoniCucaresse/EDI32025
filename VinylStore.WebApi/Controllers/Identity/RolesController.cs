@@ -14,10 +14,10 @@ namespace VinylStore.WebApi.Controllers.Identity
     public class RolesController : ControllerBase
     {
         private readonly RoleManager<Role> _roleManager;
-        private readonly ILogger<ArtistasController> _logger;
+        private readonly ILogger<RolesController> _logger;
         private readonly IMapper _mapper;
         public RolesController(RoleManager<Role> roleManager
-            , ILogger<ArtistasController> logger
+            , ILogger<RolesController> logger
             , IMapper mapper)
         {
             _roleManager = roleManager;
@@ -53,6 +53,7 @@ namespace VinylStore.WebApi.Controllers.Identity
                 try
                 {
                     var role = _mapper.Map<Role>(roleRequestDto);
+                    role.Id = Guid.NewGuid();  
                     var result = _roleManager.CreateAsync(role).Result;
                     if (result.Succeeded)
                     {

@@ -16,10 +16,10 @@ namespace VinylStore.WebApi.Controllers.Identity
     {
         private readonly ITokenHandlerService _servicioToken;
         private readonly UserManager<User> _userManager;
-        private readonly ILogger<ArtistasController> _logger;
+        private readonly ILogger<AuthController> _logger;
         public AuthController(
             UserManager<User> userManager
-            , ILogger<ArtistasController> logger, ITokenHandlerService servicioToken)
+            , ILogger<AuthController> logger, ITokenHandlerService servicioToken)
         {
             _userManager = userManager;
             _logger = logger;
@@ -43,7 +43,8 @@ namespace VinylStore.WebApi.Controllers.Identity
                     UserName = user.Email.Substring(0, user.Email.IndexOf('@')),
                     Nombres = user.Nombres,
                     Apellidos = user.Apellidos,
-                    FechaNacimiento = user.FechaNacimiento
+                    FechaNacimiento = user.FechaNacimiento,
+                    DireccionEnvio = user.DireccionEnvio
                 }, user.Password);
                 if (Creado.Succeeded)
                 {
@@ -51,7 +52,8 @@ namespace VinylStore.WebApi.Controllers.Identity
                     {
                         NombreCompleto = string.Join(" ", user.Nombres, user.Apellidos),
                         Email = user.Email,
-                        UserName = user.Email.Substring(0, user.Email.IndexOf('@'))
+                        UserName = user.Email.Substring(0, user.Email.IndexOf('@')),
+                        DireccionEnvio = user.DireccionEnvio
                     });
                 }
 
@@ -122,12 +124,14 @@ namespace VinylStore.WebApi.Controllers.Identity
                     {
                         try
                         {
+                            var roles = await _userManager.GetRolesAsync(existeUsuario);
                             var parametros = new TokenParameters()
                             {
                                 Id = existeUsuario.Id.ToString(),
                                 PaswordHash = existeUsuario.PasswordHash,
                                 UserName = existeUsuario.UserName,
-                                Email = existeUsuario.Email
+                                Email = existeUsuario.Email,
+                                Roles = roles
                             };
                             var jwt = _servicioToken.GenerateJwtTokens(parametros);
                             return Ok(new LoginUserResponseDto()

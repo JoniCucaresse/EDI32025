@@ -20,5 +20,7 @@ namespace VinylStore.Application.Dtos.Identity.User
         public string Password { get; set; }
         [DataType(DataType.Date)]
         public DateTime? FechaNacimiento { get; set; }
+
+        public string DireccionEnvio { get; set; }
     }
 }

@@ -22,7 +22,7 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Biblioteca.WebApi", Version = "v1" });
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "VinylStore.WebApi", Version = "v1" });
     //var filePath = Path.Combine(System.AppContext.BaseDirectory, "NutricionProfesional.WebApi.xml");
     //c.IncludeXmlComments(filePath);
     var jwtSecurityScheme = new OpenApiSecurityScheme
