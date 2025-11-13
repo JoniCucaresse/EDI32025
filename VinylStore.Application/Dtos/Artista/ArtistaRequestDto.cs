@@ -12,8 +12,7 @@ namespace VinylStore.Application.Dtos.Artista
         public int Id { get; set; }
         [StringLength(50)]
         public string Nombre { get; set; }
-        [StringLength(50)]
-        public string Pais { get; set; }
+        public int IdPais { get; set; }
         public string Biografia { get; set; }
     }
 }
