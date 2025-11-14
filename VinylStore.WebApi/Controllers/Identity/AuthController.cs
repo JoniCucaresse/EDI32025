@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
 using VinylStore.Application.Dtos.Identity.User;
 using VinylStore.Application.Dtos.Login;
 using VinylStore.Entities.MicrosoftIdentity;
@@ -30,41 +31,48 @@ namespace VinylStore.WebApi.Controllers.Identity
         [Route("Register")]
         public async Task<IActionResult> RegistrarUsuario([FromBody] UserRegistroRequestDto user)
         {
-            if (ModelState.IsValid)
+            try
             {
-                var existeUsuario = await _userManager.FindByEmailAsync(user.Email);
-                if (existeUsuario != null)
+                if (ModelState.IsValid)
                 {
-                    return BadRequest("Existe un usuario registrado con el mal " + user.Email + ".");
-                }
-                var Creado = await _userManager.CreateAsync(new User()
-                {
-                    Email = user.Email,
-                    UserName = user.Email.Substring(0, user.Email.IndexOf('@')),
-                    Nombres = user.Nombres,
-                    Apellidos = user.Apellidos,
-                    FechaNacimiento = user.FechaNacimiento,
-                    DireccionEnvio = user.DireccionEnvio
-                }, user.Password);
-                if (Creado.Succeeded)
-                {
-                    return Ok(new UserRegistroResponseDto
+                    var existeUsuario = await _userManager.FindByEmailAsync(user.Email);
+                    if (existeUsuario != null)
                     {
-                        NombreCompleto = string.Join(" ", user.Nombres, user.Apellidos),
+                        return BadRequest("Existe un usuario registrado con el mal " + user.Email + ".");
+                    }
+                    var Creado = await _userManager.CreateAsync(new User()
+                    {
                         Email = user.Email,
                         UserName = user.Email.Substring(0, user.Email.IndexOf('@')),
+                        Nombres = user.Nombres,
+                        Apellidos = user.Apellidos,
+                        FechaNacimiento = user.FechaNacimiento,
                         DireccionEnvio = user.DireccionEnvio
-                    });
+                    }, user.Password);
+                    if (Creado.Succeeded)
+                    {
+                        return Ok(new UserRegistroResponseDto
+                        {
+                            NombreCompleto = string.Join(" ", user.Nombres, user.Apellidos),
+                            Email = user.Email,
+                            UserName = user.Email.Substring(0, user.Email.IndexOf('@')),
+                            DireccionEnvio = user.DireccionEnvio
+                        });
+                    }
+                    else
+                    {
+                        return BadRequest(Creado.Errors.Select(e => e.Description).ToList());
+                    }
                 }
-
                 else
                 {
-                    return BadRequest(Creado.Errors.Select(e => e.Description).ToList());
+                    return BadRequest("Los datos enviados no son validos.");
                 }
             }
-            else
+            catch (Exception ex)
             {
-                return BadRequest("Los datos enviados no son validos.");
+                _logger.LogError(ex, "Error al registrar usuario con email {Email}", user?.Email);
+                return StatusCode(StatusCodes.Status500InternalServerError, "Error al registrar el usuario");
             }
         }
 
@@ -72,40 +80,48 @@ namespace VinylStore.WebApi.Controllers.Identity
         [Route("RegisterSincronico")]
         public IActionResult RegistrarUsuarioincronico([FromBody] UserRegistroRequestDto user)
         {
-            if (ModelState.IsValid)
+            try
             {
-                var existeUsuario = _userManager.FindByEmailAsync(user.Email).Result;
-                if (existeUsuario != null)
+                if (ModelState.IsValid)
                 {
-                    return BadRequest("Existe un usuario registrado con el mal " + user.Email + ".");
-                }
-                var Creado = _userManager.CreateAsync(new User()
-                {
-                    Email = user.Email,
-                    UserName = user.Email.Substring(0, user.Email.IndexOf('@')),
-                    Nombres = user.Nombres,
-                    Apellidos = user.Apellidos,
-                    FechaNacimiento = user.FechaNacimiento
-                }, user.Password).Result;
-                if (Creado.Succeeded)
-                {
-                    var userBack = _userManager.FindByEmailAsync(user.Email);
-                    _ = _userManager.AddToRoleAsync(userBack.Result, "Administrador");
-                    return Ok(new UserRegistroResponseDto
+                    var existeUsuario = _userManager.FindByEmailAsync(user.Email).Result;
+                    if (existeUsuario != null)
                     {
-                        NombreCompleto = string.Join(" ", user.Nombres, user.Apellidos),
+                        return BadRequest("Existe un usuario registrado con el mal " + user.Email + ".");
+                    }
+                    var Creado = _userManager.CreateAsync(new User()
+                    {
                         Email = user.Email,
-                        UserName = user.Email.Substring(0, user.Email.IndexOf('@'))
-                    });
+                        UserName = user.Email.Substring(0, user.Email.IndexOf('@')),
+                        Nombres = user.Nombres,
+                        Apellidos = user.Apellidos,
+                        FechaNacimiento = user.FechaNacimiento
+                    }, user.Password).Result;
+                    if (Creado.Succeeded)
+                    {
+                        var userBack = _userManager.FindByEmailAsync(user.Email);
+                        _ = _userManager.AddToRoleAsync(userBack.Result, "Administrador");
+                        return Ok(new UserRegistroResponseDto
+                        {
+                            NombreCompleto = string.Join(" ", user.Nombres, user.Apellidos),
+                            Email = user.Email,
+                            UserName = user.Email.Substring(0, user.Email.IndexOf('@'))
+                        });
+                    }
+                    else
+                    {
+                        return BadRequest(Creado.Errors.Select(e => e.Description).ToList());
+                    }
                 }
                 else
                 {
-                    return BadRequest(Creado.Errors.Select(e => e.Description).ToList());
+                    return BadRequest("Los datos enviados no son validos.");
                 }
             }
-            else
+            catch (Exception ex)
             {
-                return BadRequest("Los datos enviados no son validos.");
+                _logger.LogError(ex, "Error al registrar (sincrónico) usuario con email {Email}", user?.Email);
+                return StatusCode(StatusCodes.Status500InternalServerError, "Error al registrar el usuario");
             }
         }
 
@@ -114,15 +130,15 @@ namespace VinylStore.WebApi.Controllers.Identity
         [AllowAnonymous]
         public async Task<IActionResult> Login([FromBody] LoginUserRequestDto userlogin)
         {
-            if (ModelState.IsValid)
+            try
             {
-                var existeUsuario = await _userManager.FindByEmailAsync(userlogin.Email);
-                if (existeUsuario != null)
+                if (ModelState.IsValid)
                 {
-                    var isCorrect = await _userManager.CheckPasswordAsync(existeUsuario, userlogin.Password);
-                    if (isCorrect)
+                    var existeUsuario = await _userManager.FindByEmailAsync(userlogin.Email);
+                    if (existeUsuario != null)
                     {
-                        try
+                        var isCorrect = await _userManager.CheckPasswordAsync(existeUsuario, userlogin.Password);
+                        if (isCorrect)
                         {
                             var roles = await _userManager.GetRolesAsync(existeUsuario);
                             var parametros = new TokenParameters()
@@ -142,22 +158,23 @@ namespace VinylStore.WebApi.Controllers.Identity
                                 Mail = existeUsuario.Email
                             });
                         }
-                        catch (Exception)
-                        {
-
-                            throw;
-                        }
                     }
                 }
-            }
-            return BadRequest(new LoginUserResponseDto()
-            {
-                Login = false,
-                Errores = new List<string>()
+
+                return BadRequest(new LoginUserResponseDto()
+                {
+                    Login = false,
+                    Errores = new List<string>()
                     {
                        "Usuario o contraseña incorrecto!"
                     }
-            });
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al autenticar usuario con email {Email}", userlogin?.Email);
+                return StatusCode(StatusCodes.Status500InternalServerError, "Error al autenticar el usuario");
+            }
         }
     }
 }

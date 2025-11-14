@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
 
 namespace VinylStore.WebApi.Controllers.Identity
 {
@@ -24,87 +25,81 @@ namespace VinylStore.WebApi.Controllers.Identity
             _logger = logger;
             _mapper = mapper;
         }
-        /// <summary>
-        /// Obtiene una lista de todos los laboratorios por tipo
-        /// </summary>
-        /// <returns>Lista de Alimentos</returns>
+
         [HttpGet]
         [Route("GetAll")]
         public async Task<IActionResult> GetAll()
         {
-            return Ok(_mapper.Map<IList<RoleResponseDto>>(_roleManager.Roles.ToList()));
+            try
+            {
+                return Ok(_mapper.Map<IList<RoleResponseDto>>(_roleManager.Roles.ToList()));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener roles");
+                return StatusCode(StatusCodes.Status500InternalServerError, "Error al obtener los roles");
+            }
         }
 
-        /// <summary>
-        /// Crea un alimento
-        /// </summary>
-        /// <param name="{"></param>
-        /// <returns></returns>
-        /// <response code="200">Alimento Creado</response>
-        /// <response code="400">Error al validar el alimento</response>
-        /// <response code="500">Oops! No se pudo crear el alimento</response>
         [HttpPost]
         [Route("Create")]
-        public IActionResult Guardar(RoleRequestDto roleRequestDto)
+        public async Task<IActionResult> Guardar(RoleRequestDto roleRequestDto)
         {
-            if (ModelState.IsValid)
-            {
-                var userId = Guid.Parse(User.FindFirst("Id")?.Value);
-                try
-                {
-                    var role = _mapper.Map<Role>(roleRequestDto);
-                    role.Id = Guid.NewGuid();  
-                    var result = _roleManager.CreateAsync(role).Result;
-                    if (result.Succeeded)
-                    {
-                        return Ok(role.Id);
-                    }
-                    return Problem(detail: result.Errors.First().Description, instance: role.Name, statusCode: StatusCodes.Status409Conflict);
-                }
-                catch (Exception)
-                {
-
-                    throw;
-                }
-            }
-            else
+            if (!ModelState.IsValid)
             {
                 return BadRequest("Los datos enviados no son validos.");
+            }
+
+            try
+            {
+                var userId = Guid.Parse(User.FindFirst("Id")?.Value);
+                var role = _mapper.Map<Role>(roleRequestDto);
+                role.Id = Guid.NewGuid();
+                var result = await _roleManager.CreateAsync(role);
+                if (result.Succeeded)
+                {
+                    return Ok(role.Id);
+                }
+                return Problem(detail: result.Errors.First().Description, instance: role.Name, statusCode: StatusCodes.Status409Conflict);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al crear el rol");
+                return StatusCode(StatusCodes.Status500InternalServerError, "Error al crear el rol");
             }
         }
 
         [HttpPut]
         [Route("Update")]
-        public IActionResult Modificar([FromBody] RoleRequestDto roleRequestDto, [FromQuery] Guid id)/*Falta */
+        public async Task<IActionResult> Modificar([FromBody] RoleRequestDto roleRequestDto, [FromQuery] Guid id)
         {
-            if (ModelState.IsValid)
-            {
-                var userId = Guid.Parse(User.FindFirst("Id")?.Value);
-                try
-                {
-                    var role = _mapper.Map<Role>(roleRequestDto);
-                    role.Id = id;
-                    var result = _roleManager.UpdateAsync(role).Result;
-                    if (result.Succeeded)
-                    {
-                        return Ok(role.Id);
-                    }
-                    return Problem(detail: result.Errors.First().Description, instance: role.Name, statusCode: StatusCodes.Status409Conflict);
-                }
-                catch (Exception)
-                {
-                    throw;
-                }
-            }
-            else
+            if (!ModelState.IsValid)
             {
                 return BadRequest("Los datos enviados no son validos.");
+            }
+
+            try
+            {
+                var userId = Guid.Parse(User.FindFirst("Id")?.Value);
+                var role = _mapper.Map<Role>(roleRequestDto);
+                role.Id = id;
+                var result = await _roleManager.UpdateAsync(role);
+                if (result.Succeeded)
+                {
+                    return Ok(role.Id);
+                }
+                return Problem(detail: result.Errors.First().Description, instance: role.Name, statusCode: StatusCodes.Status409Conflict);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al actualizar el rol con ID {Id}", id);
+                return StatusCode(StatusCodes.Status500InternalServerError, "Error al actualizar el rol");
             }
         }
 
         [Route("GetById")]
         [HttpGet]
-        public IActionResult GetById(Guid? id)
+        public async Task<IActionResult> GetById(Guid? id)
         {
             try
             {
@@ -112,7 +107,7 @@ namespace VinylStore.WebApi.Controllers.Identity
                 {
                     return BadRequest();
                 }
-                var role = _roleManager.FindByIdAsync(id.Value.ToString());
+                var role = await _roleManager.FindByIdAsync(id.Value.ToString());
                 if (role == null)
                 {
                     return NotFound();
@@ -121,7 +116,8 @@ namespace VinylStore.WebApi.Controllers.Identity
             }
             catch (Exception ex)
             {
-                return Conflict();
+                _logger.LogError(ex, "Error al obtener el rol con ID {Id}", id);
+                return StatusCode(StatusCodes.Status500InternalServerError, "Error al obtener el rol");
             }
         }
     }

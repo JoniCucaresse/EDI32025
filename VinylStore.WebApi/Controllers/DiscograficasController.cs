@@ -39,16 +39,24 @@ namespace VinylStore.WebApi.Controllers
         [Authorize(Roles = "Administrador, Cliente")]
         public async Task<IActionResult> All()
         {
-            var id = User.FindFirst("Id").Value.ToString();
-            var user = _userManager.FindByIdAsync(id).Result;
-            if (_userManager.IsInRoleAsync(user, "Administrador").Result ||
-                _userManager.IsInRoleAsync(user, "Cliente").Result)
+            try
             {
-                var name = User.FindFirst("name");
-                var a = User.Claims;
-                return Ok(_mapper.Map<IList<DiscograficaResponseDto>>(_discografica.GetAll()));
+                var id = User.FindFirst("Id").Value.ToString();
+                var user = _userManager.FindByIdAsync(id).Result;
+                if (_userManager.IsInRoleAsync(user, "Administrador").Result ||
+                    _userManager.IsInRoleAsync(user, "Cliente").Result)
+                {
+                    var name = User.FindFirst("name");
+                    var a = User.Claims;
+                    return Ok(_mapper.Map<IList<DiscograficaResponseDto>>(_discografica.GetAll()));
+                }
+                return Unauthorized();
             }
-            return Unauthorized();
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener todas las discográficas");
+                return StatusCode(StatusCodes.Status500InternalServerError, "Error al obtener las discográficas");
+            }
         }
 
         [HttpGet]
@@ -56,74 +64,106 @@ namespace VinylStore.WebApi.Controllers
         [Authorize(Roles = "Administrador, Cliente")]
         public async Task<IActionResult> ById(int? Id)
         {
-            if (!Id.HasValue)
+            try
             {
-                return BadRequest();
+                if (!Id.HasValue)
+                {
+                    return BadRequest();
+                }
+                Discografica discografica = _discografica.GetById(Id.Value);
+                if (discografica is null)
+                {
+                    return NotFound();
+                }
+                return Ok(_mapper.Map<DiscograficaResponseDto>(discografica));
             }
-            Discografica discografica = _discografica.GetById(Id.Value);
-            if (discografica is null)
+            catch (Exception ex)
             {
-                return NotFound();
+                _logger.LogError(ex, "Error al obtener la discográfica con ID {Id}", Id);
+                return StatusCode(StatusCodes.Status500InternalServerError, "Error al obtener la discográfica");
             }
-            return Ok(_mapper.Map<DiscograficaResponseDto>(discografica));
         }
 
         [HttpPost]
         [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> Crear(DiscograficaRequestDto discograficaRequestDto)
         {
-            if (!ModelState.IsValid)
-            { return BadRequest(); }
-            var discografica = _mapper.Map<Discografica>(discograficaRequestDto);
-            _discografica.Save(discografica);
-            return Ok(discografica.Id);
+            try
+            {
+                if (!ModelState.IsValid)
+                { return BadRequest(); }
+                var discografica = _mapper.Map<Discografica>(discograficaRequestDto);
+                _discografica.Save(discografica);
+                return Ok(discografica.Id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al crear una nueva discográfica");
+                return StatusCode(StatusCodes.Status500InternalServerError, "Error al crear la discográfica");
+            }
         }
 
         [HttpPut]
         [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> Editar(int? Id, DiscograficaRequestDto discograficaRequestDto)
         {
-            if (!Id.HasValue)
+            try
             {
-                return BadRequest("ID requerido");
-            }
+                if (!Id.HasValue)
+                {
+                    return BadRequest("ID requerido");
+                }
 
-            if (!ModelState.IsValid)
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(ModelState);
+                }
+
+                Discografica discograficaBack = _discografica.GetById(Id.Value);
+
+                if (discograficaBack is null)
+                {
+                    return NotFound($"No se encontró la discografica con ID {Id.Value}");
+                }
+
+                _mapper.Map(discograficaRequestDto, discograficaBack);
+
+                discograficaBack.Id = Id.Value;
+
+                _discografica.Save(discograficaBack);
+
+                var discograficaResponseDto = _mapper.Map<DiscograficaResponseDto>(discograficaBack);
+
+                return Ok(discograficaResponseDto);
+            }
+            catch (Exception ex)
             {
-                return BadRequest(ModelState);
+                _logger.LogError(ex, "Error al editar la discográfica con ID {Id}", Id);
+                return StatusCode(StatusCodes.Status500InternalServerError, "Error al editar la discográfica");
             }
-
-            Discografica discograficaBack = _discografica.GetById(Id.Value);
-
-            if (discograficaBack is null)
-            {
-                return NotFound($"No se encontró la discografica con ID {Id.Value}");
-            }
-
-            _mapper.Map(discograficaRequestDto, discograficaBack);
-
-            discograficaBack.Id = Id.Value;
-
-            _discografica.Save(discograficaBack);
-
-            var discograficaResponseDto = _mapper.Map<DiscograficaResponseDto>(discograficaBack);
-
-            return Ok(discograficaResponseDto);
         }
 
         [HttpDelete]
         [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> Borrar(int? Id)
         {
-            if (!Id.HasValue)
-            { return BadRequest(); }
-            if (!ModelState.IsValid)
-            { return BadRequest(); }
-            Discografica discograficaBack = _discografica.GetById(Id.Value);
-            if (discograficaBack is null)
-            { return NotFound(); }
-            _discografica.Delete(discograficaBack.Id);
-            return Ok();
+            try
+            {
+                if (!Id.HasValue)
+                { return BadRequest(); }
+                if (!ModelState.IsValid)
+                { return BadRequest(); }
+                Discografica discograficaBack = _discografica.GetById(Id.Value);
+                if (discograficaBack is null)
+                { return NotFound(); }
+                _discografica.Delete(discograficaBack.Id);
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al eliminar la discográfica con ID {Id}", Id);
+                return StatusCode(StatusCodes.Status500InternalServerError, "Error al eliminar la discográfica");
+            }
         }
     }
 }

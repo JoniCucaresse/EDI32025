@@ -40,16 +40,24 @@ namespace VinylStore.WebApi.Controllers
         [Authorize(Roles = "Administrador, Cliente")]
         public async Task<IActionResult> All()
         {
-            var id = User.FindFirst("Id").Value.ToString();
-            var user = _userManager.FindByIdAsync(id).Result;
-            if (_userManager.IsInRoleAsync(user, "Administrador").Result ||
-                _userManager.IsInRoleAsync(user, "Cliente").Result)
+            try
             {
-                var name = User.FindFirst("name");
-                var a = User.Claims;
-                return Ok(_mapper.Map<IList<GeneroResponseDto>>(_genero.GetAll()));
+                var id = User.FindFirst("Id").Value.ToString();
+                var user = _userManager.FindByIdAsync(id).Result;
+                if (_userManager.IsInRoleAsync(user, "Administrador").Result ||
+                    _userManager.IsInRoleAsync(user, "Cliente").Result)
+                {
+                    var name = User.FindFirst("name");
+                    var a = User.Claims;
+                    return Ok(_mapper.Map<IList<GeneroResponseDto>>(_genero.GetAll()));
+                }
+                return Unauthorized();
             }
-            return Unauthorized();
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener todos los géneros");
+                return StatusCode(StatusCodes.Status500InternalServerError, "Error al obtener los géneros");
+            }
         }
 
         [HttpGet]
@@ -57,74 +65,106 @@ namespace VinylStore.WebApi.Controllers
         [Authorize(Roles = "Administrador, Cliente")]
         public async Task<IActionResult> ById(int? Id)
         {
-            if (!Id.HasValue)
+            try
             {
-                return BadRequest();
+                if (!Id.HasValue)
+                {
+                    return BadRequest();
+                }
+                Genero genero = _genero.GetById(Id.Value);
+                if (genero is null)
+                {
+                    return NotFound();
+                }
+                return Ok(_mapper.Map<GeneroResponseDto>(genero));
             }
-            Genero genero = _genero.GetById(Id.Value);
-            if (genero is null)
+            catch (Exception ex)
             {
-                return NotFound();
+                _logger.LogError(ex, "Error al obtener el género con ID {Id}", Id);
+                return StatusCode(StatusCodes.Status500InternalServerError, "Error al obtener el género");
             }
-            return Ok(_mapper.Map<GeneroResponseDto>(genero));
         }
 
         [HttpPost]
         [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> Crear(GeneroRequestDto generoRequestDto)
         {
-            if (!ModelState.IsValid)
-            { return BadRequest(); }
-            var genero = _mapper.Map<Genero>(generoRequestDto);
-            _genero.Save(genero);
-            return Ok(genero.Id);
+            try
+            {
+                if (!ModelState.IsValid)
+                { return BadRequest(); }
+                var genero = _mapper.Map<Genero>(generoRequestDto);
+                _genero.Save(genero);
+                return Ok(genero.Id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al crear un nuevo género");
+                return StatusCode(StatusCodes.Status500InternalServerError, "Error al crear el género");
+            }
         }
 
         [HttpPut]
         [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> Editar(int? Id, GeneroRequestDto generoRequestDto)
         {
-            if (!Id.HasValue)
+            try
             {
-                return BadRequest("ID requerido");
-            }
+                if (!Id.HasValue)
+                {
+                    return BadRequest("ID requerido");
+                }
 
-            if (!ModelState.IsValid)
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(ModelState);
+                }
+
+                Genero generoBack = _genero.GetById(Id.Value);
+
+                if (generoBack is null)
+                {
+                    return NotFound($"No se encontró el genero con ID {Id.Value}");
+                }
+
+                _mapper.Map(generoRequestDto, generoBack);
+
+                generoBack.Id = Id.Value;
+
+                _genero.Save(generoBack);
+
+                var generoResponseDto = _mapper.Map<GeneroResponseDto>(generoBack);
+
+                return Ok(generoResponseDto);
+            }
+            catch (Exception ex)
             {
-                return BadRequest(ModelState);
+                _logger.LogError(ex, "Error al editar el género con ID {Id}", Id);
+                return StatusCode(StatusCodes.Status500InternalServerError, "Error al editar el género");
             }
-
-            Genero generoBack = _genero.GetById(Id.Value);
-
-            if (generoBack is null)
-            {
-                return NotFound($"No se encontró el genero con ID {Id.Value}");
-            }
-
-            _mapper.Map(generoRequestDto, generoBack);
-
-            generoBack.Id = Id.Value;
-
-            _genero.Save(generoBack);
-
-            var generoResponseDto = _mapper.Map<GeneroResponseDto>(generoBack);
-
-            return Ok(generoResponseDto);
         }
 
         [HttpDelete]
         [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> Borrar(int? Id)
         {
-            if (!Id.HasValue)
-            { return BadRequest(); }
-            if (!ModelState.IsValid)
-            { return BadRequest(); }
-            Genero generoBack = _genero.GetById(Id.Value);
-            if (generoBack is null)
-            { return NotFound(); }
-            _genero.Delete(generoBack.Id);
-            return Ok();
+            try
+            {
+                if (!Id.HasValue)
+                { return BadRequest(); }
+                if (!ModelState.IsValid)
+                { return BadRequest(); }
+                Genero generoBack = _genero.GetById(Id.Value);
+                if (generoBack is null)
+                { return NotFound(); }
+                _genero.Delete(generoBack.Id);
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al eliminar el género con ID {Id}", Id);
+                return StatusCode(StatusCodes.Status500InternalServerError, "Error al eliminar el género");
+            }
         }
     }
 }

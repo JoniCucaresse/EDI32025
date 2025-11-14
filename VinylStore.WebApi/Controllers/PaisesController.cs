@@ -38,16 +38,24 @@ namespace VinylStore.WebApi.Controllers
         [Authorize(Roles = "Administrador, Cliente")]
         public async Task<IActionResult> All()
         {
-            var id = User.FindFirst("Id").Value.ToString();
-            var user = _userManager.FindByIdAsync(id).Result;
-            if (_userManager.IsInRoleAsync(user, "Administrador").Result ||
-                _userManager.IsInRoleAsync(user, "Cliente").Result)
+            try
             {
-                var name = User.FindFirst("name");
-                var a = User.Claims;
-                return Ok(_mapper.Map<IList<PaisResponseDto>>(_pais.GetAll()));
+                var id = User.FindFirst("Id").Value.ToString();
+                var user = _userManager.FindByIdAsync(id).Result;
+                if (_userManager.IsInRoleAsync(user, "Administrador").Result ||
+                    _userManager.IsInRoleAsync(user, "Cliente").Result)
+                {
+                    var name = User.FindFirst("name");
+                    var a = User.Claims;
+                    return Ok(_mapper.Map<IList<PaisResponseDto>>(_pais.GetAll()));
+                }
+                return Unauthorized();
             }
-            return Unauthorized();
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener todos los países");
+                return StatusCode(StatusCodes.Status500InternalServerError, "Error al obtener los países");
+            }
         }
 
         [HttpGet]
@@ -55,74 +63,114 @@ namespace VinylStore.WebApi.Controllers
         [Authorize(Roles = "Administrador, Cliente")]
         public async Task<IActionResult> ById(int? Id)
         {
-            if (!Id.HasValue)
+            try
             {
-                return BadRequest();
+                if (!Id.HasValue)
+                {
+                    return BadRequest();
+                }
+                Pais pais = _pais.GetById(Id.Value);
+                if (pais is null)
+                {
+                    return NotFound();
+                }
+                return Ok(_mapper.Map<PaisResponseDto>(pais));
             }
-            Pais pais = _pais.GetById(Id.Value);
-            if (pais is null)
+            catch (Exception ex)
             {
-                return NotFound();
+                _logger.LogError(ex, "Error al obtener el país con ID {Id}", Id);
+                return StatusCode(StatusCodes.Status500InternalServerError, "Error al obtener el país");
             }
-            return Ok(_mapper.Map<PaisResponseDto>(pais));
         }
 
         [HttpPost]
         [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> Crear(PaisRequestDto paisRequestDto)
         {
-            if (!ModelState.IsValid)
-            { return BadRequest(); }
-            var pais = _mapper.Map<Pais>(paisRequestDto);
-            _pais.Save(pais);
-            return Ok(pais.Id);
+            try
+            {
+                if (!ModelState.IsValid)
+                { 
+                    return BadRequest(); 
+                }
+                var pais = _mapper.Map<Pais>(paisRequestDto);
+                _pais.Save(pais);
+                return Ok(pais.Id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al crear un nuevo país");
+                return StatusCode(StatusCodes.Status500InternalServerError, "Error al crear el país");
+            }
         }
 
         [HttpPut]
         [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> Editar(int? Id, PaisRequestDto paisRequestDto)
         {
-            if (!Id.HasValue)
+            try
             {
-                return BadRequest("ID requerido");
-            }
+                if (!Id.HasValue)
+                {
+                    return BadRequest("ID requerido");
+                }
 
-            if (!ModelState.IsValid)
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(ModelState);
+                }
+
+                Pais paisBack = _pais.GetById(Id.Value);
+
+                if (paisBack is null)
+                {
+                    return NotFound($"No se encontró el pais con ID {Id.Value}");
+                }
+
+                _mapper.Map(paisRequestDto, paisBack);
+
+                paisBack.Id = Id.Value;
+
+                _pais.Save(paisBack);
+
+                var paisResponseDto = _mapper.Map<PaisResponseDto>(paisBack);
+
+                return Ok(paisResponseDto);
+            }
+            catch (Exception ex)
             {
-                return BadRequest(ModelState);
+                _logger.LogError(ex, "Error al editar el país con ID {Id}", Id);
+                return StatusCode(StatusCodes.Status500InternalServerError, "Error al editar el país");
             }
-
-            Pais paisBack = _pais.GetById(Id.Value);
-
-            if (paisBack is null)
-            {
-                return NotFound($"No se encontró el pais con ID {Id.Value}");
-            }
-
-            _mapper.Map(paisRequestDto, paisBack);
-
-            paisBack.Id = Id.Value;
-
-            _pais.Save(paisBack);
-
-            var paisResponseDto = _mapper.Map<PaisResponseDto>(paisBack);
-
-            return Ok(paisResponseDto);
         }
 
         [HttpDelete]
         [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> Borrar(int? Id)
         {
-            if (!Id.HasValue)
-            { return BadRequest(); }
-            if (!ModelState.IsValid)
-            { return BadRequest(); }
-            Pais paisBack = _pais.GetById(Id.Value);
-            if (paisBack is null)
-            { return NotFound(); }
-            _pais.Delete(paisBack.Id);
-            return Ok();
+            try
+            {
+                if (!Id.HasValue)
+                { 
+                    return BadRequest(); 
+                }
+                if (!ModelState.IsValid)
+                { 
+                    return BadRequest(); 
+                }
+                Pais paisBack = _pais.GetById(Id.Value);
+                if (paisBack is null)
+                { 
+                    return NotFound(); 
+                }
+                _pais.Delete(paisBack.Id);
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al eliminar el país con ID {Id}", Id);
+                return StatusCode(StatusCodes.Status500InternalServerError, "Error al eliminar el país");
+            }
         }
     }
 }
